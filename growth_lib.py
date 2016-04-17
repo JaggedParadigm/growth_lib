@@ -8,13 +8,6 @@ def calc_culture_dilution(culture_volume=40.0,start_time=[],final_OD = 0.2,desir
     to a new culture to acheive a particular cell concentration (OD)
     at a particular time
     """
-    start_time = []
-    culture_volume = 40.0 # mL
-    final_OD = 0.7
-    desired_time = '9:30 AM'
-    measured_OD = 5*np.array([0.3435])
-    td = 3.4
-    
     # Parse desired time into time object
     desired_time = time.strptime(desired_time,'%I:%M %p')
     
@@ -40,7 +33,16 @@ if __name__ == '__main__':
     OD = 0.7
     V = 60.0
     td = 3.4 #2.00
+    
+    kwargs = {
+        'start_time': [],
+        'culture_volume': 40.0, # mL
+        'final_OD': 0.7,
+        'desired_time': '9:30 AM',
+        'measured_OD': 5*np.array([0.3435]),
+        'td': 3.4
+    }
 
-    calc_culture_dilution()
+    calc_culture_dilution(**kwargs)
     
     #testObj                         = GrowthCalculator(ODm,startTime=startTime,timeEnd=timeEnd,OD=OD,V=V,td=td)    
