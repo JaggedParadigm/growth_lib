@@ -102,4 +102,4 @@ if __name__ == '__main__':
         'doubling_time': 3.4
     }
 
-    calc_culture_dilution(**kwargs)
+    print calc_culture_dilution(**kwargs)
