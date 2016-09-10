@@ -2,9 +2,9 @@ import datetime
 import time
 import numpy as np
 
-def calc_culture_dilution(culture_volume=[],start_time=[],final_OD=[],
+def calc_preculture_volume(culture_volume=[],start_time=[],final_OD=[],
                             desired_time=[],doubling_time=[],measured_OD=[],
-                            specific_growth_rate=[]):
+                            specific_growth_rate=[],detailed_flag=False):
     """
     Calculates the amount of exponential phase culture to add
     to a new culture to acheive a particular cell concentration (OD)
@@ -88,7 +88,10 @@ def calc_culture_dilution(culture_volume=[],start_time=[],final_OD=[],
     V_m = culture_volume
     
     ## Calculate exponential culture volume to add
-    V_a = V_m/(OD_c*np.exp(mu*delt)/OD)
+    if not detailed_flag:
+        V_a = V_m/(OD_c*np.exp(mu*delt)/OD)
+    else:
+        V_a = V_m/(OD_c*np.exp(mu*delt)/OD-1)
     
     return V_a
 
