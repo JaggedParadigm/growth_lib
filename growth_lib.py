@@ -2,8 +2,49 @@ import datetime
 import time
 import numpy as np
 
+def project_growth(start_time=[],final_OD=[],
+                    end_time=[],doubling_time=[],measured_OD=[],
+                    specific_growth_rate=[],number_points=10,t0=0.0):
+    """
+    Projects growth 
+    """
+    # Check inputs
+    _check_inputs(doubling_time=doubling_time,final_OD=final_OD,
+                           specific_growth_rate=specific_growth_rate)
+    
+    # Calculate time difference between now or start time and end time
+    time_difference = _calc_time_interval(start_time=start_time,end_time=end_time)
+
+    # Save variables with shorter names for equation readability
+    N = number_points
+    delt = time_difference
+    if doubling_time:
+        mu = np.log(2.0)/doubling_time
+    else:
+        mu = specific_growth_rate
+    C_f = final_OD
+    
+    time_series = np.array([t0+i*delt/N for i in range(N+1)])
+    
+    C = lambda t: C_f*np.exp(mu*(t-delt))
+    
+    return [time_series,C(time_series)]
+    
+    
+    
+def _check_inputs(doubling_time=[],final_OD=[],specific_growth_rate=[]):
+    # Check that only doubling time or specific growth rate specified (not both)
+    if specific_growth_rate and doubling_time:
+        raise NameError('\nThe maximum specific growth rate and doubling time cannot be specified at the same time\n')
+    elif not specific_growth_rate and not doubling_time:
+        raise NameError('\nEither the specific growth rate or doubling time must be specified\n')
+    
+    # Check that all necessary keyword arguments are present
+    if not final_OD:
+        raise NameError('\nFinal OD keyword argument, final_OD, must be specifed\n')    
+    
 def calc_preculture_volume(culture_volume=[],start_time=[],final_OD=[],
-                            desired_time=[],doubling_time=[],measured_OD=[],
+                            end_time=[],doubling_time=[],measured_OD=[],
                             specific_growth_rate=[],detailed_flag=False):
     """
     Calculates the amount of exponential phase culture to add
@@ -17,7 +58,7 @@ def calc_preculture_volume(culture_volume=[],start_time=[],final_OD=[],
     start_time              str     Starting time in format '%I:%M %p' (Ex: '5:34 PM').                                    
     final_OD                float   Final desired cell concentration in OD_600 units
                                     (Ex: 0.7). 
-    desired_time            str     Starting time in format '%I:%M %p' (Ex: '9:30 AM').
+    end_time                str     Starting time in format '%I:%M %p' (Ex: '9:30 AM').
                                     (time I'd use often)
     doubling_time           float   Strain doubling time in hours. Only this or the 
                                     specific growth rate must be specific. (Ex: 3.4).
@@ -27,30 +68,47 @@ def calc_preculture_volume(culture_volume=[],start_time=[],final_OD=[],
     measured_OD             float   Measured exponential culture concentration (OD_600)
     -----------------------------------------------------------------------------------
     """
-    # Check that only doubling time or specific growth rate specified (not both)
-    if specific_growth_rate and doubling_time:
-        raise NameError('\nThe maximum specific growth rate and doubling time cannot be specified at the same time\n')
-    elif not specific_growth_rate and not doubling_time:
-        raise NameError('\nEither the specific growth rate or doubling time must be specified\n')
-    
-    # Check that all necessary keyword arguments are present
+    # Check inputs
     if not culture_volume:
-        raise NameError('\nCulture volume keyword argument, culture_volume, must be specifed\n')    
-    if not final_OD:
-        raise NameError('\nFinal OD keyword argument, final_OD, must be specifed\n')    
-    if not desired_time:
-        raise NameError('\nDesired time keyword argument, desired_time, must be specifed\n')
+        raise NameError('\nCulture volume keyword argument, culture_volume, must be specifed\n')
     if not measured_OD.any():
         raise NameError('\nMeasured OD must be specific\n')
+    _check_inputs(doubling_time=doubling_time,final_OD=final_OD,
+                           specific_growth_rate=specific_growth_rate)
+        
+    # Calculate time difference between now or start time and end time
+    time_difference = _calc_time_interval(start_time=start_time,end_time=end_time)
     
-    # Calculate time until desired time from either current time or user-provided start-time                                    
-    ## Convert desired time into time object
-    desired_time = time.strptime(desired_time,'%I:%M %p')
-
-    ## Get current time
+    # Save variables with shorter names for equation readability
+    OD = final_OD
+    delt = time_difference
+    mu = np.log(2.0)/doubling_time
+    OD_c = measured_OD
+    V_m = culture_volume
+    
+    # Calculate volume of exponential culture to add to flask with medium
+    if not detailed_flag:
+        V_a = V_m/(OD_c*np.exp(mu*delt)/OD)
+    else:
+        V_a = V_m/(OD_c*np.exp(mu*delt)/OD-1)
+    
+    # Return volume to add
+    return V_a
+    
+def _calc_time_interval(start_time=[],end_time=[]):
+    """
+    Returns time difference from the start time today until
+    the end time tomorrow in hours given an optional starting
+    time (default is the current time) and a desired end time
+    """
+    # Check data inputs
+    if not end_time:
+        raise NameError('End/final time keyword argument, end_time, must be specifed\n')
+    
+    # Get current time
     current_datetime = datetime.datetime.now()
 
-    ## Convert start time to time object if given
+    # Convert start time to time object if given
     if start_time:
         start_time = time.strptime(start_time,'%I:%M %p')
         datetime_replace_kwargs = {
@@ -61,39 +119,29 @@ def calc_preculture_volume(culture_volume=[],start_time=[],final_OD=[],
         }
         start_time = current_datetime
         start_time.replace(**datetime_replace_kwargs)
-        
-    ## Convert desired_time into datetime object corresponding to that time tomorrow
+    
+    # Convert desired time into time object
+    end_time = time.strptime(end_time,'%I:%M %p')
+    
+    # Convert end_time into datetime object corresponding to that time tomorrow
     tommorrows_datetime = current_datetime + datetime.timedelta(days=1)
     datetime_replace_kwargs = {
-        'hour': desired_time.tm_hour,
-        'minute': desired_time.tm_min,
+        'hour': end_time.tm_hour,
+        'minute': end_time.tm_min,
         'second': 0,
         'microsecond': 0
     }
-    desired_time = tommorrows_datetime.replace(**datetime_replace_kwargs)
+    end_time = tommorrows_datetime.replace(**datetime_replace_kwargs)
     
-    ## Make start_time the current_datetime if not provided by user
+    # Make start_time the current_datetime if not provided by user
     if not start_time:
         start_time = current_datetime
     
     # Calculate difference in time in hours
-    time_difference = (desired_time-start_time).total_seconds()/60.0/60.0
+    time_difference = (end_time-start_time).total_seconds()/60.0/60.0
     
-    # Calculate volume of exponential culture to add to flask with medium
-    ## Save variables with shorter names for equation readability
-    OD = final_OD
-    delt = time_difference
-    mu = np.log(2.0)/doubling_time
-    OD_c = measured_OD
-    V_m = culture_volume
-    
-    ## Calculate exponential culture volume to add
-    if not detailed_flag:
-        V_a = V_m/(OD_c*np.exp(mu*delt)/OD)
-    else:
-        V_a = V_m/(OD_c*np.exp(mu*delt)/OD-1)
-    
-    return V_a
+    # Return time difference
+    return time_difference
 
 if __name__ == '__main__':
     kwargs = {
