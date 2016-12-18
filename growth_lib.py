@@ -6,7 +6,14 @@ def project_growth(start_time=[],final_OD=[],
                     end_time=[],doubling_time=[],measured_OD=[],
                     specific_growth_rate=[],number_points=10,t0=0.0):
     """
-    Projects growth 
+    Returns a list containing a Numpy ndarry containing elapsed times
+    and another one of the corresponding exponential-phase cell concentration
+    given the doubling time (doubling_time) or the maximum specific growth
+    rate (specific_growth_rate), the final cell concentration in OD_600 units
+    (final_OD), a starting time string (start_time) in 12-hour cycle time (Ex:
+    '9:30 AM'), an ending time (end_time) in the same format, and an optional number
+    points to have in the final projection (number_points), and optional starting
+    value for the elapsed time (t0) in hours.
     """
     # Check inputs
     _check_inputs(doubling_time=doubling_time,final_OD=final_OD,
@@ -30,14 +37,18 @@ def project_growth(start_time=[],final_OD=[],
     
     return [time_series,C(time_series)]
     
-    
-    
 def _check_inputs(doubling_time=[],final_OD=[],specific_growth_rate=[]):
+    """
+    Checks that only a specific growth rate or doubling time are provided
+    and whether the final desired cell concentration, final_OD, is provided.
+    """
     # Check that only doubling time or specific growth rate specified (not both)
     if specific_growth_rate and doubling_time:
-        raise NameError('\nThe maximum specific growth rate and doubling time cannot be specified at the same time\n')
+        raise NameError('\nThe maximum specific growth rate and doubling time \
+                        cannot be specified at the same time\n')
     elif not specific_growth_rate and not doubling_time:
-        raise NameError('\nEither the specific growth rate or doubling time must be specified\n')
+        raise NameError('\nEither the specific growth rate or doubling time must \
+                        be specified\n')
     
     # Check that all necessary keyword arguments are present
     if not final_OD:
